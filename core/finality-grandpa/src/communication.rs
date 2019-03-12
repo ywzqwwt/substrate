@@ -28,8 +28,9 @@ use parity_codec::{Encode, Decode};
 use substrate_primitives::{ed25519, Ed25519AuthorityId};
 use runtime_primitives::traits::Block as BlockT;
 use tokio::timer::Interval;
-use crate::{Error, Network, Message, SignedMessage, Commit,
-	CompactCommit, GossipMessage, FullCommitMessage, VoteOrPrecommitMessage};
+
+use crate::gossip::{GossipMessage, FullCommitMessage, VoteOrPrecommitMessage};
+use crate::{Error, Network, Message, SignedMessage, Commit, CompactCommit};
 
 fn localized_payload<E: Encode>(round: u64, set_id: u64, message: &E) -> Vec<u8> {
 	(message, round, set_id).encode()
