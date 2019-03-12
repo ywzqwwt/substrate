@@ -20,10 +20,10 @@ use runtime_primitives::traits::Block as BlockT;
 use network::consensus_gossip as network_gossip;
 use parity_codec::{Encode, Decode};
 
-use substrate_telemetry::{telemetry, CONSENSUS_TRACE, CONSENSUS_DEBUG};
-use log::{debug, trace};
+use substrate_telemetry::{telemetry, CONSENSUS_DEBUG};
+use log::debug;
 
-use super::{CompactCommit, SignedMessage};
+use crate::{CompactCommit, SignedMessage};
 
 /// An outcome of examining a message.
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -43,17 +43,6 @@ pub struct View {
 }
 
 impl View {
-	/// Get the round number.
-	pub fn round(&self) -> u64 { self.round }
-
-	/// Get the set ID.
-	pub fn set_id(&self) -> u64 { self.set_id}
-
-	/// Update the round number, implying the same set.
-	pub fn update_round(&mut self, new_round: u64) {
-		self.round = new_round;
-	}
-
 	/// Update the set ID. implies a reset to round 0.
 	pub fn update_set(&mut self, set_id: u64) {
 		self.set_id = set_id;
@@ -149,7 +138,7 @@ impl<Block: BlockT> GossipValidator<Block> {
 			_ => {},
 		}
 
-		if let Err(()) = crate::communication::check_message_sig::<Block>(
+		if let Err(()) = super::check_message_sig::<Block>(
 			&full.message.message,
 			&full.message.id,
 			&full.message.signature,
@@ -161,7 +150,7 @@ impl<Block: BlockT> GossipValidator<Block> {
 			return network_gossip::ValidationResult::Invalid;
 		}
 
-		let topic = crate::message_topic::<Block>(full.round, full.set_id);
+		let topic = super::message_topic::<Block>(full.round, full.set_id);
 		network_gossip::ValidationResult::Valid(topic)
 	}
 
@@ -188,7 +177,7 @@ impl<Block: BlockT> GossipValidator<Block> {
 
 		// check signatures on all contained precommits.
 		for (precommit, &(ref sig, ref id)) in full.message.precommits.iter().zip(&full.message.auth_data) {
-			if let Err(()) = crate::communication::check_message_sig::<Block>(
+			if let Err(()) = super::check_message_sig::<Block>(
 				&GrandpaMessage::Precommit(precommit.clone()),
 				id,
 				sig,
@@ -201,7 +190,7 @@ impl<Block: BlockT> GossipValidator<Block> {
 			}
 		}
 
-		let topic = crate::commit_topic::<Block>(full.set_id);
+		let topic = super::commit_topic::<Block>(full.set_id);
 		network_gossip::ValidationResult::Valid(topic)
 	}
 }
