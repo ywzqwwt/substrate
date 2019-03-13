@@ -28,7 +28,7 @@ use parity_codec::{Encode, Decode};
 use network::Service as NetworkService;
 use substrate_primitives::{ed25519, Ed25519AuthorityId};
 use substrate_telemetry::{telemetry, CONSENSUS_DEBUG};
-use runtime_primitives::traits::{Block as BlockT, Hash as HashT, Header as HeaderT};
+use runtime_primitives::traits::{Block as BlockT, Hash as HashT, Header as HeaderT, NumberFor};
 use tokio::timer::Interval;
 
 use gossip::{GossipMessage, FullCommitMessage, VoteOrPrecommitMessage};
@@ -93,6 +93,12 @@ pub trait Network<Block: BlockT>: Clone {
 
 	/// Send message over the commit channel.
 	fn send_commit(&self, round: u64, set_id: u64, message: Vec<u8>);
+
+	/// Note a block finalized in a commit message that has been successfully
+	/// imported.
+	/// This should inform the network handler but does not need to lead
+	/// to any network action in particular.
+	fn note_commit_finalized(&self, set_id: u64, number: NumberFor<Block>);
 
 	/// Inform peers that a block with given hash should be downloaded.
 	fn announce(&self, round: u64, set_id: u64, block: Block::Hash);
@@ -182,6 +188,10 @@ impl<B: BlockT, S: network::specialization::NetworkSpecialization<B>,> Network<B
 		);
 		self.service.announce_block(block)
 	}
+
+	fn note_commit_finalized(&self, _set_id: u64, number: NumberFor<B>) {
+		self.validator.note_commit_finalized(number);
+	}
 }
 
 fn localized_payload<E: Encode>(round: u64, set_id: u64, message: &E) -> Vec<u8> {
@@ -204,6 +214,8 @@ enum Broadcast<Block: BlockT> {
 	DropRound(Round, SetId),
 	// set_id being dropped.
 	DropSet(SetId),
+	// voter worker notifies us of the latest finalized block from a  _checked_ commit message.
+	NoteCommitFinalized(SetId, NumberFor<Block>),
 }
 
 impl<Block: BlockT> Broadcast<Block> {
@@ -214,6 +226,7 @@ impl<Block: BlockT> Broadcast<Block> {
 			Broadcast::Announcement(_, s, _) => s,
 			Broadcast::DropRound(_, s) => s,
 			Broadcast::DropSet(s) => s,
+			Broadcast::NoteCommitFinalized(s, _) => s,
 		}
 	}
 }
@@ -351,6 +364,9 @@ impl<B: BlockT, N: Network<B>> Future for BroadcastWorker<B, N> {
 							// stop making announcements for any dead rounds.
 							self.network.drop_set_messages(set_id.0);
 						}
+						Broadcast::NoteCommitFinalized(set_id, number) => {
+							self.network.note_commit_finalized(set_id.0, number);
+						}
 					}
 				}
 			}
@@ -388,6 +404,12 @@ impl<B: BlockT, N: Network<B>> Network<B> for BroadcastHandle<B, N> {
 	fn announce(&self, round: u64, set_id: u64, block: B::Hash) {
 		let _ = self.relay.unbounded_send(
 			Broadcast::Announcement(Round(round), SetId(set_id), block)
+		);
+	}
+
+	fn note_commit_finalized(&self, set_id: u64, number: NumberFor<B>) {
+		let _ = self.relay.unbounded_send(
+			Broadcast::NoteCommitFinalized(SetId(set_id), number)
 		);
 	}
 }
@@ -447,12 +469,54 @@ pub(crate) fn checked_message_stream<Block: BlockT, S>(
 		.map_err(|()| Error::Network(format!("Failed to receive message on unbounded stream")))
 }
 
+/// Whether we've voted already during a prior run of the program.
+#[derive(Decode, Encode)]
+pub(crate) enum HasVoted {
+	/// Has not voted already in this round.
+	#[codec(index = "0")]
+	No,
+	/// Has cast a proposal.
+	#[codec(index = "1")]
+	Proposed,
+	/// Has cast a prevote.
+	#[codec(index = "2")]
+	Prevoted,
+	/// Has cast a precommit (implies prevote.)
+	#[codec(index = "3")]
+	Precommitted,
+}
+
+impl HasVoted {
+	#[allow(unused)]
+	fn can_propose(&self) -> bool {
+		match *self {
+			HasVoted::No => true,
+			HasVoted::Proposed | HasVoted::Prevoted | HasVoted::Precommitted => false,
+		}
+	}
+
+	fn can_prevote(&self) -> bool {
+		match *self {
+			HasVoted::No | HasVoted::Proposed => true,
+			HasVoted::Prevoted | HasVoted::Precommitted => false,
+		}
+	}
+
+	fn can_precommit(&self) -> bool {
+		match *self {
+			HasVoted::No | HasVoted::Proposed | HasVoted::Prevoted => true,
+			HasVoted::Precommitted => false,
+		}
+	}
+}
+
 pub(crate) struct OutgoingMessages<Block: BlockT, N: Network<Block>> {
 	round: u64,
 	set_id: u64,
 	locals: Option<(Arc<ed25519::Pair>, Ed25519AuthorityId)>,
 	sender: mpsc::UnboundedSender<SignedMessage<Block>>,
 	network: N,
+	has_voted: HasVoted,
 }
 
 impl<Block: BlockT, N: Network<Block>> Sink for OutgoingMessages<Block, N>
@@ -461,16 +525,23 @@ impl<Block: BlockT, N: Network<Block>> Sink for OutgoingMessages<Block, N>
 	type SinkError = Error;
 
 	fn start_send(&mut self, msg: Message<Block>) -> StartSend<Message<Block>, Error> {
+		// only sign if we haven't voted in this round already.
+		let should_sign = match msg {
+			grandpa::Message::Prevote(_) => self.has_voted.can_prevote(),
+			grandpa::Message::Precommit(_) => self.has_voted.can_precommit(),
+		};
+
 		// when locals exist, sign messages on import
-		if let Some((ref pair, local_id)) = self.locals {
+		if let (true, &Some((ref pair, ref local_id))) = (should_sign, &self.locals) {
 			let encoded = localized_payload(self.round, self.set_id, &msg);
 			let signature = pair.sign(&encoded[..]);
+
 
 			let target_hash = msg.target().0.clone();
 			let signed = SignedMessage::<Block> {
 				message: msg,
 				signature,
-				id: local_id,
+				id: local_id.clone(),
 			};
 
 			let message = GossipMessage::VoteOrPrecommit(VoteOrPrecommitMessage::<Block> {
@@ -516,6 +587,7 @@ pub(crate) fn outgoing_messages<Block: BlockT, N: Network<Block>>(
 	local_key: Option<Arc<ed25519::Pair>>,
 	voters: Arc<VoterSet<Ed25519AuthorityId>>,
 	network: N,
+	has_voted: HasVoted,
 ) -> (
 	impl Stream<Item=SignedMessage<Block>,Error=Error>,
 	OutgoingMessages<Block, N>,
@@ -537,6 +609,7 @@ pub(crate) fn outgoing_messages<Block: BlockT, N: Network<Block>>(
 		network,
 		locals,
 		sender: tx,
+		has_voted,
 	};
 
 	let rx = rx.map_err(move |()| Error::Network(
