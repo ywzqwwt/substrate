@@ -332,6 +332,41 @@ pub fn block_import<B, E, Block: BlockT<Hash=H256>, RA, PRA>(
 	))
 }
 
+// TODO: this will merge commit messages coming from gossip and point-to-point auxiliary messages (catch up requests)
+fn global_communication<Block: BlockT<Hash=H256>, I, O>(
+	commits_in: I,
+	commits_out: O,
+) -> (
+	impl Stream<
+		Item = voter::CommunicationIn<H256, NumberFor<Block>, ed25519::Signature, Ed25519AuthorityId>,
+		Error = CommandOrError<H256, NumberFor<Block>>,
+	>,
+	impl Sink<
+		SinkItem = voter::CommunicationOut<H256, NumberFor<Block>, ed25519::Signature, Ed25519AuthorityId>,
+		SinkError = CommandOrError<H256, NumberFor<Block>>,
+	>,
+) where
+	I: Stream<
+		Item = (u64, ::grandpa::CompactCommit<H256, NumberFor<Block>, ed25519::Signature, Ed25519AuthorityId>),
+		Error = CommandOrError<H256, NumberFor<Block>>,
+	>,
+	O: Sink<
+		SinkItem = (u64, ::grandpa::Commit<H256, NumberFor<Block>, ed25519::Signature, Ed25519AuthorityId>),
+		SinkError = CommandOrError<H256, NumberFor<Block>>,
+	>,
+{
+	let global_in = commits_in.map(|(round, commit)| {
+		voter::CommunicationIn::Commit(round, commit)
+	});
+
+	let global_out = commits_out.with(|global| match global {
+		voter::CommunicationOut::Commit(round, commit) => Ok((round, commit)),
+		_ => unimplemented!(),
+	});
+
+	(global_in, global_out)
+}
+
 fn committer_communication<Block: BlockT<Hash=H256>, B, E, N, RA>(
 	local_key: Option<Arc<ed25519::Pair>>,
 	set_id: u64,
@@ -488,7 +523,7 @@ pub fn run_grandpa<B, E, Block: BlockT<Hash=H256>, N, RA>(
 					chain_info.chain.finalized_number,
 				);
 
-				let committer_data = committer_communication(
+				let (commit_in, commit_out) = committer_communication(
 					config.local_key.clone(),
 					env.set_id,
 					&env.voters,
@@ -496,12 +531,17 @@ pub fn run_grandpa<B, E, Block: BlockT<Hash=H256>, N, RA>(
 					&network,
 				);
 
+				let global_comms = global_communication::<Block, _, _>(
+					commit_in,
+					commit_out,
+				);
+
 				let voters = (*env.voters).clone();
 
 				Some(voter::Voter::new(
 					env.clone(),
 					voters,
-					committer_data,
+					global_comms,
 					last_round_number,
 					last_round_state,
 					last_finalized,

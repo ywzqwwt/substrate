@@ -37,8 +37,8 @@ use runtime_primitives::traits::{
 use substrate_primitives::{Blake2Hasher, ed25519,Ed25519AuthorityId, H256};
 
 use crate::{
-	Commit, Config, Error, Network, Precommit, Prevote,
-	CommandOrError, NewAuthoritySet, VoterCommand,
+	CommandOrError, Commit, Config, Error, Network, Precommit, Prevote,
+	SignedMessage, NewAuthoritySet, VoterCommand,
 };
 
 use crate::authorities::SharedAuthoritySet;
@@ -269,7 +269,22 @@ impl<B, E, Block: BlockT<Hash=H256>, N, RA> voter::Environment<Block::Hash, Numb
 		}
 	}
 
-	fn completed(&self, round: u64, state: RoundState<Block::Hash, NumberFor<Block>>) -> Result<(), Self::Error> {
+	fn prevoted(&self, _round: u64, _prevote: Prevote<Block>) {
+		// FIXME
+	}
+
+	fn precommitted(&self, _round: u64, _precommit: Precommit<Block>) {
+		// FIXME
+	}
+
+	fn completed(
+		&self,
+		round: u64,
+		state: RoundState<Block::Hash, NumberFor<Block>>,
+		_base: (Block::Hash, NumberFor<Block>),
+		_votes: Vec<SignedMessage<Block>>,
+	) -> Result<(), Self::Error> {
+		// FIXME
 		debug!(
 			target: "afg", "Voter {} completed round {} in set {}. Estimate = {:?}, Finalized in round = {:?}",
 			self.config.name(),
