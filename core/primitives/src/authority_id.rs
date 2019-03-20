@@ -20,7 +20,7 @@ use parity_codec::{Encode, Decode};
 use crate::H256;
 
 /// An identifier for an authority in the consensus algorithm. The same size as ed25519::Public.
-#[derive(Clone, Copy, PartialEq, Eq, Default, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Eq, Default, Encode, Decode, Ord, PartialOrd)]
 pub struct Ed25519AuthorityId(pub [u8; 32]);
 
 #[cfg(feature = "std")]
