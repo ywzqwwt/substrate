@@ -39,7 +39,7 @@ use substrate_primitives::{Blake2Hasher, ed25519,Ed25519AuthorityId, H256};
 
 use crate::{
 	CommandOrError, Commit, Config, Error, Network, Precommit, Prevote,
-	SignedMessage, NewAuthoritySet, VoterCommand,
+	NewAuthoritySet, VoterCommand,
 };
 
 use crate::authorities::SharedAuthoritySet;

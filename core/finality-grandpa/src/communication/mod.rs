@@ -527,6 +527,7 @@ impl<Block: BlockT, N: Network<Block>> Sink for OutgoingMessages<Block, N>
 	fn start_send(&mut self, msg: Message<Block>) -> StartSend<Message<Block>, Error> {
 		// only sign if we haven't voted in this round already.
 		let should_sign = match msg {
+			grandpa::Message::PrimaryPropose(_) => self.has_voted.can_propose(),
 			grandpa::Message::Prevote(_) => self.has_voted.can_prevote(),
 			grandpa::Message::Precommit(_) => self.has_voted.can_precommit(),
 		};
