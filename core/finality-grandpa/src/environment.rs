@@ -28,8 +28,9 @@ use client::{
 	backend::Backend, BlockchainEvents, CallExecutor, Client, error::Error as ClientError
 };
 use grandpa::{
-	BlockNumberOps, Equivocation, Error as GrandpaError, round::State as RoundState, voter, VoterSet,
+	BlockNumberOps, Equivocation, Error as GrandpaError, round::State as RoundState, voter,
 };
+use grandpa::voter_set::VoterSet;
 use runtime_primitives::generic::BlockId;
 use runtime_primitives::traits::{
 	As, Block as BlockT, Header as HeaderT, NumberFor, One, Zero,

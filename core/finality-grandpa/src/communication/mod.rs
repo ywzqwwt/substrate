@@ -20,7 +20,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use grandpa::VoterSet;
+use grandpa::voter_set::VoterSet;
 use futures::prelude::*;
 use futures::sync::{oneshot, mpsc};
 use log::{debug, trace};

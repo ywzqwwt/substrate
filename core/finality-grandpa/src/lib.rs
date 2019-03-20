@@ -73,7 +73,8 @@ use substrate_telemetry::{telemetry, CONSENSUS_DEBUG, CONSENSUS_WARN};
 use srml_finality_tracker;
 
 use grandpa::Error as GrandpaError;
-use grandpa::{voter, round::State as RoundState, BlockNumberOps, VoterSet};
+use grandpa::{voter, round::State as RoundState, BlockNumberOps};
+use grandpa::voter_set::VoterSet;
 
 use std::fmt;
 use std::sync::Arc;
