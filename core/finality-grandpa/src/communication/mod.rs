@@ -517,6 +517,7 @@ pub(crate) struct OutgoingMessages<Block: BlockT, N: Network<Block>> {
 	sender: mpsc::UnboundedSender<SignedMessage<Block>>,
 	network: N,
 	has_voted: HasVoted,
+	is_primary_voter: bool,
 }
 
 impl<Block: BlockT, N: Network<Block>> Sink for OutgoingMessages<Block, N>
@@ -527,7 +528,7 @@ impl<Block: BlockT, N: Network<Block>> Sink for OutgoingMessages<Block, N>
 	fn start_send(&mut self, msg: Message<Block>) -> StartSend<Message<Block>, Error> {
 		// only sign if we haven't voted in this round already.
 		let should_sign = match msg {
-			grandpa::Message::PrimaryPropose(_) => self.has_voted.can_propose(),
+			grandpa::Message::PrimaryPropose(_) => self.is_primary_voter && self.has_voted.can_propose(),
 			grandpa::Message::Prevote(_) => self.has_voted.can_prevote(),
 			grandpa::Message::Precommit(_) => self.has_voted.can_precommit(),
 		};
@@ -536,7 +537,6 @@ impl<Block: BlockT, N: Network<Block>> Sink for OutgoingMessages<Block, N>
 		if let (true, &Some((ref pair, ref local_id))) = (should_sign, &self.locals) {
 			let encoded = localized_payload(self.round, self.set_id, &msg);
 			let signature = pair.sign(&encoded[..]);
-
 
 			let target_hash = msg.target().0.clone();
 			let signed = SignedMessage::<Block> {
@@ -602,6 +602,9 @@ pub(crate) fn outgoing_messages<Block: BlockT, N: Network<Block>>(
 			None
 		}
 	});
+	let primary_voter: Ed25519AuthorityId = voters.voter_by_index(round as usize % voters.len()).0;
+	let is_primary_voter = locals.as_ref().map_or(false, |id| id.1 == primary_voter);
+
 	let (tx, rx) = mpsc::unbounded();
 	let outgoing = OutgoingMessages::<Block, N> {
 		round,
@@ -610,6 +613,7 @@ pub(crate) fn outgoing_messages<Block: BlockT, N: Network<Block>>(
 		locals,
 		sender: tx,
 		has_voted,
+		is_primary_voter,
 	};
 
 	let rx = rx.map_err(move |()| Error::Network(

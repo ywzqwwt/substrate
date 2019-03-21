@@ -531,7 +531,6 @@ pub fn run_grandpa<B, E, Block: BlockT<Hash=H256>, N, RA>(
 					&client,
 					&network,
 				);
-				let local_id = config.local_key.clone().map(|pair| pair.public().into());
 				let global_comms = global_communication::<Block, _, _>(
 					commit_in,
 					commit_out,
@@ -546,7 +545,6 @@ pub fn run_grandpa<B, E, Block: BlockT<Hash=H256>, N, RA>(
 					last_round_number,
 					last_round_state,
 					last_finalized,
-					local_id,
 				))
 			}
 			VoterSetState::Paused(_, _) => None,
