@@ -198,11 +198,12 @@ fn localized_payload<E: Encode>(round: u64, set_id: u64, message: &E) -> Vec<u8>
 	(message, round, set_id).encode()
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 struct Round(u64);
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 struct SetId(u64);
 
+#[derive(Debug)]
 enum Broadcast<Block: BlockT> {
 	// round, set id, encoded commit.
 	Commit(Round, SetId, Vec<u8>),
@@ -319,7 +320,6 @@ impl<B: BlockT, N: Network<B>> Future for BroadcastWorker<B, N> {
 						self.round_messages = (Round(0), Vec::new());
 						self.announcements.clear();
 					}
-
 					match item {
 						Broadcast::Commit(round, set_id, commit) => {
 							if self.set_id == set_id {
@@ -602,7 +602,6 @@ pub(crate) fn outgoing_messages<Block: BlockT, N: Network<Block>>(
 			None
 		}
 	});
-
 	let (tx, rx) = mpsc::unbounded();
 	let outgoing = OutgoingMessages::<Block, N> {
 		round,
