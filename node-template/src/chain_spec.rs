@@ -1,7 +1,7 @@
 use primitives::{ed25519, sr25519, Pair};
 use node_template_runtime::{
 	AccountId, GenesisConfig, AuraConfig, BalancesConfig,
-	SudoConfig, IndicesConfig, SystemConfig, WASM_BINARY, AuraId
+	SudoConfig, IndicesConfig, SystemConfig, WASM_BINARY, AuraId, TemplateModuleConfig, SecondCopyConfig
 };
 use substrate_service;
 
@@ -107,5 +107,11 @@ fn testnet_genesis(initial_authorities: Vec<AuraId>, endowed_accounts: Vec<Accou
 		sudo: Some(SudoConfig {
 			key: root_key,
 		}),
+        template_Instance1: Some(TemplateModuleConfig {
+            something: 6,
+        }),
+        template_Instance2: Some(SecondCopyConfig {
+            something: 7,
+        }),
 	}
 }

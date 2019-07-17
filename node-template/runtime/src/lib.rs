@@ -199,7 +199,11 @@ impl sudo::Trait for Runtime {
 }
 
 /// Used for the module template in `./template.rs`
-impl template::Trait for Runtime {
+impl template::Trait<template::Instance1> for Runtime {
+	type Event = Event;
+}
+
+impl template::Trait<template::Instance2> for Runtime {
 	type Event = Event;
 }
 
@@ -216,7 +220,8 @@ construct_runtime!(
 		Balances: balances,
 		Sudo: sudo,
 		// Used for the module template in `./template.rs`
-		TemplateModule: template::{Module, Call, Storage, Event<T>},
+		TemplateModule: template::<Instance1>::{Module, Call, Storage, Event<T>, Config},
+        SecondCopy: template::<Instance2>::{Module, Call, Storage, Event<T>, Config},
 	}
 );
 
