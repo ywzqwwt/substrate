@@ -353,6 +353,8 @@ impl<Hash, H, B, C, E, I, Error, SO> SlotWorker<B> for BabeWorker<C, E, I, SO> w
 			// minor hack since we don't have access to the timestamp
 			// that is actually set by the proposer.
 			let slot_after_building = SignedDuration::default().slot_now(slot_duration);
+			println!("slot_duration = {:?}", slot_duration);
+			println!("slot_after_building = {:?}", slot_after_building);
 			if slot_after_building != slot_number {
 				info!(
 					target: "babe",
