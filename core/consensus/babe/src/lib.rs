@@ -355,6 +355,7 @@ impl<Hash, H, B, C, E, I, Error, SO> SlotWorker<B> for BabeWorker<C, E, I, SO> w
 			let slot_after_building = SignedDuration::default().slot_now(slot_duration);
 			println!("slot_duration = {:?}", slot_duration);
 			println!("slot_after_building = {:?}", slot_after_building);
+			println!("slot_number = {:?}", slot_number);
 			if slot_after_building != slot_number {
 				info!(
 					target: "babe",
