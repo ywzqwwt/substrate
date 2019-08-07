@@ -53,6 +53,7 @@ impl SignedDuration {
 
 	/// Get the slot for now.  Panics if `slot_duration` is 0.
 	pub fn slot_now(&self, slot_duration: u64) -> u64 {
+		println!("duration_now() = {} // offset = {:?} // is_positive = {}", duration_now(), self.offset, self.is_positive);
 		(if self.is_positive {
 			duration_now() + self.offset
 		} else {
