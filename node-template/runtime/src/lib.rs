@@ -216,8 +216,8 @@ construct_runtime!(
 		Balances: balances,
 		Sudo: sudo,
 		// Used for the module template in `./template.rs`
+		SecondCopy: template::<Instance2>::{Module, Call, Storage, Event<T>, Config},
 		TemplateModule: template::<Instance1>::{Module, Call, Storage, Event<T>, Config},
-        SecondCopy: template::<Instance2>::{Module, Call, Storage, Event<T>, Config},
 	}
 );
 
