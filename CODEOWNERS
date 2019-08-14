@@ -13,3 +13,7 @@
 
 /srml/contracts/ @pepyakin
 /core/executor/ @pepyakin
+/core/consensus/babe @DemiMarie-parity
+/core/consensus/aura @DemiMarie-parity
+/srml/babe @DemiMarie-parity
+/srml/aura @DemiMarie-parity
