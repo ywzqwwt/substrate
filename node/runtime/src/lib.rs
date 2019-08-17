@@ -35,7 +35,9 @@ use client::{
 	block_builder::api::{self as block_builder_api, InherentData, CheckInherentsResult},
 	runtime_api as client_api, impl_runtime_apis
 };
-use sr_primitives::{ApplyResult, impl_opaque_keys, generic, create_runtime_str, key_types};
+use sr_primitives::{
+	ApplyResult, KeyTypeId, impl_opaque_keys, generic, create_runtime_str, key_types,
+};
 use sr_primitives::transaction_validity::TransactionValidity;
 use sr_primitives::weights::Weight;
 use sr_primitives::traits::{
@@ -46,6 +48,7 @@ use elections::VoteIndex;
 #[cfg(any(feature = "std", test))]
 use version::NativeVersion;
 use primitives::OpaqueMetadata;
+use session::historical;
 use grandpa::{AuthorityId as GrandpaId, AuthorityWeight as GrandpaWeight};
 use im_online::{AuthorityId as ImOnlineId};
 use finality_tracker::{DEFAULT_REPORT_LATENCY, DEFAULT_WINDOW_SIZE};
@@ -446,6 +449,7 @@ construct_runtime!(
 		Sudo: sudo,
 		ImOnline: im_online::{Module, Call, Storage, Event, ValidateUnsigned, Config},
 		Offences: offences::{Module, Call, Storage, Event},
+		Historical: historical::{Module},
 	}
 );
 
@@ -583,6 +587,16 @@ impl_runtime_apis! {
 		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
 			let seed = seed.as_ref().map(|s| rstd::str::from_utf8(&s).expect("Seed is an utf8 string"));
 			SessionKeys::generate(seed)
+		}
+	}
+
+	impl substrate_session::SessionMembership<Block> for Runtime {
+		fn generate_session_membership_proof(
+			session_key: (KeyTypeId, Vec<u8>),
+		) -> Option<substrate_session::MembershipProof> {
+			use support::traits::KeyOwnerProofSystem;
+
+			Historical::prove(session_key)
 		}
 	}
 }
