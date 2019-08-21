@@ -11,7 +11,7 @@ bytes = "0.4"
 client = { package = "substrate-client", path = "../../core/client" }
 fnv = "1.0"
 futures01 = { package = "futures", version = "0.1" }
-futures-preview = "=0.3.0-alpha.17"
+futures-preview = "=0.3.0-alpha.18"
 futures-timer = "0.2.1"
 hyper = "0.12.33"
 hyper-tls = "0.3.2"
@@ -27,7 +27,7 @@ network = { package = "substrate-network", path = "../../core/network" }
 keystore = { package = "substrate-keystore", path = "../keystore" }
 
 [dev-dependencies]
-env_logger = "0.6"
+env_logger = "0.6.2"
 client-db = { package = "substrate-client-db", path = "../../core/client/db/", default-features = true }
 test-client = { package = "substrate-test-runtime-client", path = "../../core/test-runtime/client" }
 tokio = "0.1"
