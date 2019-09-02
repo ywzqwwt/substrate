@@ -258,6 +258,7 @@ pub fn read_header<Block: BlockT>(
 	col: Option<u32>,
 	id: BlockId<Block>,
 ) -> client::error::Result<Option<Block::Header>> {
+	println!("reading header with id {:?}", id);
 	match read_db(db, col_index, col, id)? {
 		Some(header) => match Block::Header::decode(&mut &header[..]) {
 			Ok(header) => Ok(Some(header)),

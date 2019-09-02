@@ -618,7 +618,8 @@ where
 		&self,
 		hash: H256,
 	) -> Result<state_machine::ChangesTrieAnchorBlockId<H256, NumberFor<Block>>, String> {
-		utils::read_header::<Block>(&*self.db, columns::KEY_LOOKUP, columns::HEADER, BlockId::Hash(hash))
+		let block_id = BlockId::Hash(hash);
+		utils::read_header::<Block>(&*self.db, columns::KEY_LOOKUP, columns::HEADER, block_id)
 			.map_err(|e| e.to_string())
 			.and_then(|maybe_header| maybe_header.map(|header|
 				state_machine::ChangesTrieAnchorBlockId {
