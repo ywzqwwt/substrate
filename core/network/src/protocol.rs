@@ -1477,7 +1477,7 @@ impl<B: BlockT, S: NetworkSpecialization<B>, H: ExHashT> Protocol<B, S, H> {
 				None
 			},
 		};
- 		self.send_message(
+		self.send_message(
 			who,
 			GenericMessage::FinalityProofResponse(message::FinalityProofResponse {
 				id: 0,
