@@ -214,10 +214,12 @@ pub fn open_database(
 ) -> client::error::Result<Arc<dyn KeyValueDB>> {
 	let mut db_config = DatabaseConfig::with_columns(Some(NUM_COLUMNS));
 	db_config.memory_budget = Some(8 * 1024);
+
 	info!(
 		target: "substrate",
-		"MEMORY BUDGET {:?}",
-		db_config.memory_budget,
+		"MEMORY BUDGET {:?}\n Block_SIZE {:?}\n",
+		db_config.memory_budget(),
+		db_config.compaction.block_size,
 	);
 	let path = config.path.to_str().ok_or_else(|| client::error::Error::Backend("Invalid database path".into()))?;
 	let db = Database::open(&db_config, &path).map_err(db_err)?;
