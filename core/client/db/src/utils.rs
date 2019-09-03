@@ -217,9 +217,20 @@ pub fn open_database(
 
 	info!(
 		target: "substrate",
-		"MEMORY BUDGET {:?}\n Block_SIZE {:?}\n",
+		"
+		\nMEMORY BUDGET {:?}
+		\nINITIAL FILE SIZE {:?}
+		\nWRITE RATE LIMIT {:?}
+		\nBLOCK SIZE {:?}
+		\nCOLUMNS {:?}
+		\nMAX OPEN FILES {:?}
+		\n",
 		db_config.memory_budget(),
+		db_config.compaction.initial_file_size,
+		db_config.compaction.write_rate_limit,
 		db_config.compaction.block_size,
+		db_config.columns,
+		db_config.max_open_files
 	);
 	let path = config.path.to_str().ok_or_else(|| client::error::Error::Backend("Invalid database path".into()))?;
 	let db = Database::open(&db_config, &path).map_err(db_err)?;
