@@ -213,9 +213,11 @@ pub fn open_database(
 	db_type: &str
 ) -> client::error::Result<Arc<dyn KeyValueDB>> {
 	let mut db_config = DatabaseConfig::with_columns(Some(NUM_COLUMNS));
-	db_config.memory_budget = config.cache_size;
+	db_config.memory_budget = Some(8 * 1024);
 	let path = config.path.to_str().ok_or_else(|| client::error::Error::Backend("Invalid database path".into()))?;
 	let db = Database::open(&db_config, &path).map_err(db_err)?;
+
+	println!("OPENING DB WITH MEMORY BUDGET OF {:?}", db_config.memory_budget());
 
 	// check database type
 	match db.get(col_meta, meta_keys::TYPE).map_err(db_err)? {
@@ -258,7 +260,6 @@ pub fn read_header<Block: BlockT>(
 	col: Option<u32>,
 	id: BlockId<Block>,
 ) -> client::error::Result<Option<Block::Header>> {
-	println!("reading header with id {:?}", id);
 	match read_db(db, col_index, col, id)? {
 		Some(header) => match Block::Header::decode(&mut &header[..]) {
 			Ok(header) => Ok(Some(header)),
