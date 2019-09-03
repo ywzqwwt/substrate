@@ -1287,6 +1287,7 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 
 	/// Get block status.
 	pub fn block_status(&self, id: &BlockId<Block>) -> error::Result<BlockStatus> {
+		info!("@@@@ START BLOCK STATUS");
 		// this can probably be implemented more efficiently
 		if let BlockId::Hash(ref h) = id {
 			if self.importing_block.read().as_ref().map_or(false, |importing| h == importing) {
@@ -1297,7 +1298,7 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 			BlockId::Hash(hash) => self.backend.blockchain().number(hash)?.map(|n| (hash, n)),
 			BlockId::Number(n) => self.backend.blockchain().hash(n)?.map(|hash| (hash, n)),
 		};
-		match hash_and_number {
+		let r = match hash_and_number {
 			Some((hash, number)) => {
 				if self.backend.have_state_at(&hash, number) {
 					Ok(BlockStatus::InChainWithState)
@@ -1306,7 +1307,10 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 				}
 			}
 			None => Ok(BlockStatus::Unknown),
-		}
+		};
+		info!("@@@@ END BLOCK STATUS");
+		
+		r
 	}
 
 	/// Get block header by id.
