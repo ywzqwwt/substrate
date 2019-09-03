@@ -24,7 +24,7 @@ use std::{io, convert::TryInto};
 use kvdb::{KeyValueDB, DBTransaction};
 #[cfg(feature = "kvdb-rocksdb")]
 use kvdb_rocksdb::{Database, DatabaseConfig};
-use log::debug;
+use log::{debug, info};
 
 use client;
 use codec::Decode;
@@ -214,6 +214,11 @@ pub fn open_database(
 ) -> client::error::Result<Arc<dyn KeyValueDB>> {
 	let mut db_config = DatabaseConfig::with_columns(Some(NUM_COLUMNS));
 	db_config.memory_budget = config.cache_size;
+	info!(
+		target: "substrate",
+		"MEMORY BUDGET {:?}",
+		db_config.memory_budget,
+	);
 	let path = config.path.to_str().ok_or_else(|| client::error::Error::Backend("Invalid database path".into()))?;
 	let db = Database::open(&db_config, &path).map_err(db_err)?;
 
