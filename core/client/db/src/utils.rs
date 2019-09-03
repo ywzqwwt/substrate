@@ -213,7 +213,7 @@ pub fn open_database(
 	db_type: &str
 ) -> client::error::Result<Arc<dyn KeyValueDB>> {
 	let mut db_config = DatabaseConfig::with_columns(Some(NUM_COLUMNS));
-	db_config.memory_budget = config.cache_size;
+	db_config.memory_budget = Some(8 * 1024);
 	info!(
 		target: "substrate",
 		"MEMORY BUDGET {:?}",
