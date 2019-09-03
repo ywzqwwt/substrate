@@ -20,6 +20,7 @@ use std::{sync::Arc, collections::HashMap};
 use parking_lot::RwLock;
 
 use kvdb::{KeyValueDB, DBTransaction};
+use log::info;
 
 use client::blockchain::Cache as BlockchainCache;
 use client::error::Result as ClientResult;
@@ -299,6 +300,8 @@ impl<Block: BlockT> BlockchainCache<Block> for DbCacheSync<Block> {
 		key: &CacheKeyId,
 		at: &BlockId<Block>,
 	) -> Option<((NumberFor<Block>, Block::Hash), Option<(NumberFor<Block>, Block::Hash)>, Vec<u8>)> {
+		info!("START @@@@ cache get_at() {:?}", at);
+		
 		let cache = self.0.read();
 		let storage = cache.cache_at.get(key)?.storage();
 		let db = storage.db();
@@ -321,7 +324,8 @@ impl<Block: BlockT> BlockchainCache<Block> for DbCacheSync<Block> {
 				ComplexBlockId::new(hash, number)
 			},
 		};
-
+		info!("END @@@@ cache get_at() {:?}", at);
+		
 		cache.cache_at
 			.get(key)?
 			.value_at_block(&at)

@@ -65,7 +65,7 @@ use client::children;
 use state_db::StateDb;
 use consensus_common::well_known_cache_keys;
 use crate::storage_cache::{CachingState, SharedCache, new_shared_cache};
-use log::{trace, debug, warn};
+use log::{trace, debug, warn, info};
 pub use state_db::PruningMode;
 
 #[cfg(feature = "test-helpers")]
@@ -289,7 +289,10 @@ impl<Block: BlockT> BlockchainDb<Block> {
 
 impl<Block: BlockT> client::blockchain::HeaderBackend<Block> for BlockchainDb<Block> {
 	fn header(&self, id: BlockId<Block>) -> Result<Option<Block::Header>, client::error::Error> {
-		utils::read_header(&*self.db, columns::KEY_LOOKUP, columns::HEADER, id)
+		info!("START @@@@ BlockchainDb::header() {:?}", id);
+		let r = utils::read_header(&*self.db, columns::KEY_LOOKUP, columns::HEADER, id);
+		info!("END @@@@ BlockchainDb::header() {:?}", id);
+		r
 	}
 
 	fn info(&self) -> client::blockchain::Info<Block> {
@@ -329,10 +332,13 @@ impl<Block: BlockT> client::blockchain::HeaderBackend<Block> for BlockchainDb<Bl
 	}
 
 	fn hash(&self, number: NumberFor<Block>) -> Result<Option<Block::Hash>, client::error::Error> {
-		self.header(BlockId::Number(number)).and_then(|maybe_header| match maybe_header {
+		info!("START @@@@ BlockchainDb::hash() {:?}", number);
+		let r = self.header(BlockId::Number(number)).and_then(|maybe_header| match maybe_header {
 			Some(header) => Ok(Some(header.hash().clone())),
 			None => Ok(None),
-		})
+		});
+		info!("END @@@@ BlockchainDb::hash() {:?}", number);
+		r
 	}
 }
 
@@ -618,14 +624,19 @@ where
 		&self,
 		hash: H256,
 	) -> Result<state_machine::ChangesTrieAnchorBlockId<H256, NumberFor<Block>>, String> {
-		utils::read_header::<Block>(&*self.db, columns::KEY_LOOKUP, columns::HEADER, BlockId::Hash(hash))
+		info!("START @@@@ build_anchor() {:?}", hash);
+		
+		let r = utils::read_header::<Block>(&*self.db, columns::KEY_LOOKUP, columns::HEADER, BlockId::Hash(hash))
 			.map_err(|e| e.to_string())
 			.and_then(|maybe_header| maybe_header.map(|header|
 				state_machine::ChangesTrieAnchorBlockId {
 					hash,
 					number: *header.number(),
 				}
-			).ok_or_else(|| format!("Unknown header: {}", hash)))
+			).ok_or_else(|| format!("Unknown header: {}", hash)));
+
+		info!("END @@@@ build_anchor() {:?}", hash);
+		r
 	}
 
 	fn root(

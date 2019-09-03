@@ -19,7 +19,7 @@
 use std::sync::Arc;
 
 use kvdb::{KeyValueDB, DBTransaction};
-
+use log::info;
 use client::error::{Error as ClientError, Result as ClientResult};
 use codec::{Encode, Decode};
 use sr_primitives::generic::BlockId;
@@ -126,12 +126,18 @@ impl DbStorage {
 
 impl<Block: BlockT, T: CacheItemT> Storage<Block, T> for DbStorage {
 	fn read_id(&self, at: NumberFor<Block>) -> ClientResult<Option<Block::Hash>> {
-		utils::read_header::<Block>(&*self.db, self.columns.key_lookup, self.columns.header, BlockId::Number(at))
-			.map(|maybe_header| maybe_header.map(|header| header.hash()))
+		info!("START @@@@ DbStorage::read_id() {:?}", at);
+		let r = utils::read_header::<Block>(&*self.db, self.columns.key_lookup, self.columns.header, BlockId::Number(at))
+			.map(|maybe_header| maybe_header.map(|header| header.hash()));
+		info!("END @@@@ DbStorage::read_id() {:?}", at);
+		r
 	}
 
 	fn read_header(&self, at: &Block::Hash) -> ClientResult<Option<Block::Header>> {
-		utils::read_header::<Block>(&*self.db, self.columns.key_lookup, self.columns.header, BlockId::Hash(*at))
+		info!("START @@@@ DbStorage::read_header() {:?}", at);
+		let r = utils::read_header::<Block>(&*self.db, self.columns.key_lookup, self.columns.header, BlockId::Hash(*at));
+		info!("END @@@@ DbStorage::read_header() {:?}", at);
+		r
 	}
 
 	fn read_meta(&self) -> ClientResult<Metadata<Block>> {
