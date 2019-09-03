@@ -99,7 +99,15 @@ decl_storage! {
 	add_extra_genesis {
 		config(phantom): rstd::marker::PhantomData<I>;
 		config(members): Vec<T::AccountId>;
-		build(|config| Module::<T, I>::initialize_members(&config.members))
+		build(|
+			storage: &mut (sr_primitives::StorageOverlay, sr_primitives::ChildrenStorageOverlay),
+			config: &Self,
+		| {
+			runtime_io::with_storage(
+				storage,
+				|| Module::<T, I>::initialize_members(&config.members),
+			);
+		})
 	}
 }
 
@@ -130,7 +138,7 @@ decl_event!(
 // operational class.
 decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance=DefaultInstance> for enum Call where origin: <T as system::Trait>::Origin {
-		fn deposit_event() = default;
+		fn deposit_event<T, I>() = default;
 
 		/// Set the collective's membership manually to `new_members`. Be nice to the chain and
 		/// provide it pre-sorted.

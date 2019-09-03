@@ -12,11 +12,8 @@ pub trait Trait: 'static + Eq + Clone {
 
 srml_support::decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-	}
-}
-
-impl<T: Trait> Module<T> {
-	pub fn deposit_event(_event: impl Into<T::Event>) {
+		pub fn deposit_event(_event: T::Event) {
+		}
 	}
 }
 

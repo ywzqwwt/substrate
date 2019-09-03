@@ -155,7 +155,15 @@ decl_storage! {
 	}
 	add_extra_genesis {
 		config(authorities): Vec<T::AuthorityId>;
-		build(|config| Module::<T>::initialize_authorities(&config.authorities))
+		build(|
+			storage: &mut (sr_primitives::StorageOverlay, sr_primitives::ChildrenStorageOverlay),
+			config: &GenesisConfig<T>
+		| {
+			runtime_io::with_storage(
+				storage,
+				|| Module::<T>::initialize_authorities(&config.authorities),
+			);
+		})
 	}
 }
 
@@ -250,7 +258,7 @@ impl<T: Trait> Module<T> {
 
 	fn on_timestamp_set(now: T::Moment, slot_duration: T::Moment) {
 		let last = Self::last();
-		<Self as Store>::LastTimestamp::put(now);
+		<Self as Store>::LastTimestamp::put(now.clone());
 
 		if last.is_zero() {
 			return;
@@ -258,7 +266,7 @@ impl<T: Trait> Module<T> {
 
 		assert!(!slot_duration.is_zero(), "Aura slot duration cannot be zero.");
 
-		let last_slot = last / slot_duration;
+		let last_slot = last / slot_duration.clone();
 		let cur_slot = now / slot_duration;
 
 		assert!(last_slot < cur_slot, "Only one block may be authored per slot.");

@@ -62,11 +62,16 @@ decl_storage! {
 	add_extra_genesis {
 		config(members): Vec<T::AccountId>;
 		config(phantom): sr_std::marker::PhantomData<I>;
-		build(|config: &Self| {
-			let mut members = config.members.clone();
-			members.sort();
-			T::MembershipInitialized::initialize_members(&members);
-			<Members<T, I>>::put(members);
+		build(|
+			storage: &mut (sr_primitives::StorageOverlay, sr_primitives::ChildrenStorageOverlay),
+			config: &Self,
+		| {
+			sr_io::with_storage(storage, || {
+				let mut members = config.members.clone();
+				members.sort();
+				T::MembershipInitialized::initialize_members(&members);
+				<Members<T, I>>::put(members);
+			});
 		})
 	}
 }
@@ -94,7 +99,7 @@ decl_module! {
 		for enum Call
 		where origin: T::Origin
 	{
-		fn deposit_event() = default;
+		fn deposit_event<T, I>() = default;
 
 		/// Add a member `who` to the set.
 		///

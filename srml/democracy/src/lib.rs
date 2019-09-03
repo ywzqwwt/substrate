@@ -24,11 +24,11 @@ use sr_primitives::traits::{Zero, Bounded, CheckedMul, CheckedDiv, EnsureOrigin,
 use sr_primitives::weights::SimpleDispatchInfo;
 use codec::{Encode, Decode, Input, Output, Error};
 use srml_support::{
-	decl_module, decl_storage, decl_event, ensure, StorageValue, StorageMap, StorageLinkedMap,
-	Parameter, Dispatchable,
+	decl_module, decl_storage, decl_event, ensure,
+	StorageValue, StorageMap, Parameter, Dispatchable, EnumerableStorageMap,
 	traits::{
-		Currency, ReservableCurrency, LockableCurrency, WithdrawReason, LockIdentifier, Get,
-		OnFreeBalanceZero
+		Currency, ReservableCurrency, LockableCurrency, WithdrawReason, LockIdentifier,
+		OnFreeBalanceZero, Get
 	}
 };
 use srml_support::dispatch::Result;
@@ -354,7 +354,7 @@ decl_module! {
 		/// Period in blocks where an external proposal may not be re-submitted after being vetoed.
 		const CooloffPeriod: T::BlockNumber = T::CooloffPeriod::get();
 
-		fn deposit_event() = default;
+		fn deposit_event<T>() = default;
 
 		/// Propose a sensitive action to be taken.
 		///
@@ -377,8 +377,9 @@ decl_module! {
 			PublicPropCount::put(index + 1);
 			<DepositOf<T>>::insert(index, (value, vec![who.clone()]));
 
-			let new_prop = (index, (*proposal).clone(), who);
-			<PublicProps<T>>::append_or_put([new_prop].into_iter());
+			let mut props = Self::public_props();
+			props.push((index, (*proposal).clone(), who));
+			<PublicProps<T>>::put(props);
 
 			Self::deposit_event(RawEvent::Proposed(index, value));
 		}
@@ -787,7 +788,7 @@ impl<T: Trait> Module<T> {
 	fn do_vote(who: T::AccountId, ref_index: ReferendumIndex, vote: Vote) -> Result {
 		ensure!(Self::is_active_referendum(ref_index), "vote given for invalid referendum.");
 		if !<VoteOf<T>>::exists(&(ref_index, who.clone())) {
-			<VotersFor<T>>::append_or_insert(ref_index, [who.clone()].into_iter());
+			<VotersFor<T>>::mutate(ref_index, |voters| voters.push(who.clone()));
 		}
 		<VoteOf<T>>::insert(&(ref_index, who), vote);
 		Ok(())
@@ -925,9 +926,9 @@ impl<T: Trait> Module<T> {
 			if info.delay.is_zero() {
 				Self::enact_proposal(info.proposal, index);
 			} else {
-				<DispatchQueue<T>>::append_or_insert(
+				<DispatchQueue<T>>::mutate(
 					now + info.delay,
-					[Some((info.proposal, index))].into_iter()
+					|q| q.push(Some((info.proposal, index)))
 				);
 			}
 		} else {
@@ -945,12 +946,12 @@ impl<T: Trait> Module<T> {
 		if (now % T::LaunchPeriod::get()).is_zero() {
 			// Errors come from the queue being empty. we don't really care about that, and even if
 			// we did, there is nothing we can do here.
-			let _ = Self::launch_next(now);
+			let _ = Self::launch_next(now.clone());
 		}
 
 		// tally up votes for any expiring referenda.
 		for (index, info) in Self::maturing_referenda_at(now).into_iter() {
-			Self::bake_referendum(now, index, info)?;
+			Self::bake_referendum(now.clone(), index, info)?;
 		}
 
 		for (proposal, index) in <DispatchQueue<T>>::take(now).into_iter().filter_map(|x| x) {

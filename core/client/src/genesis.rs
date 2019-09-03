@@ -54,7 +54,8 @@ mod tests {
 	native_executor_instance!(
 		Executor,
 		test_client::runtime::api::dispatch,
-		test_client::runtime::native_version
+		test_client::runtime::native_version,
+		test_client::runtime::WASM_BINARY
 	);
 
 	fn executor() -> executor::NativeExecutor<Executor> {
@@ -152,7 +153,6 @@ mod tests {
 			vec![AccountKeyring::One.into(), AccountKeyring::Two.into()],
 			1000,
 			None,
-			vec![],
 		).genesis_map();
 		let genesis_hash = insert_genesis_block(&mut storage);
 
@@ -181,7 +181,6 @@ mod tests {
 			vec![AccountKeyring::One.into(), AccountKeyring::Two.into()],
 			1000,
 			None,
-			vec![],
 		).genesis_map();
 		let genesis_hash = insert_genesis_block(&mut storage);
 
@@ -210,7 +209,6 @@ mod tests {
 			vec![AccountKeyring::One.into(), AccountKeyring::Two.into()],
 			68,
 			None,
-			vec![],
 		).genesis_map();
 		let genesis_hash = insert_genesis_block(&mut storage);
 

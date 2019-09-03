@@ -313,9 +313,6 @@ where
 			assert!(header_item == computed_item, "Digest item must match that calculated.");
 		}
 
-		#[cfg(feature = "std")]
-		println!("Header {:?}\n New-Header {:?}\n", header, new_header);
-
 		// check storage root.
 		let storage_root = new_header.state_root();
 		header.state_root().check_equal(&storage_root);

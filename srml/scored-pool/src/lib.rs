@@ -172,27 +172,32 @@ decl_storage! {
 	add_extra_genesis {
 		config(members): Vec<T::AccountId>;
 		config(phantom): sr_std::marker::PhantomData<I>;
-		build(|config| {
-			let mut pool = config.pool.clone();
+		build(|
+			storage: &mut (sr_primitives::StorageOverlay, sr_primitives::ChildrenStorageOverlay),
+			config: &Self,
+		| {
+			sr_io::with_storage(storage, || {
+				let mut pool = config.pool.clone();
 
-			// reserve balance for each candidate in the pool.
-			// panicking here is ok, since this just happens one time, pre-genesis.
-			pool
-				.iter()
-				.for_each(|(who, _)| {
-					T::Currency::reserve(&who, T::CandidateDeposit::get())
-						.expect("balance too low to create candidacy");
-					<CandidateExists<T, I>>::insert(who, true);
-				});
+				// reserve balance for each candidate in the pool.
+				// panicking here is ok, since this just happens one time, pre-genesis.
+				pool
+					.iter()
+					.for_each(|(who, _)| {
+						T::Currency::reserve(&who, T::CandidateDeposit::get())
+							.expect("balance too low to create candidacy");
+						<CandidateExists<T, I>>::insert(who, true);
+					});
 
-			/// Sorts the `Pool` by score in a descending order. Entities which
-			/// have a score of `None` are sorted to the beginning of the vec.
-			pool.sort_by_key(|(_, maybe_score)|
-				Reverse(maybe_score.unwrap_or_default())
-			);
+				/// Sorts the `Pool` by score in a descending order. Entities which
+				/// have a score of `None` are sorted to the beginning of the vec.
+				pool.sort_by_key(|(_, maybe_score)|
+					Reverse(maybe_score.unwrap_or_default())
+				);
 
-			<Pool<T, I>>::put(&pool);
-			<Module<T, I>>::refresh_members(pool, ChangeReceiver::MembershipInitialized);
+				<Pool<T, I>>::put(&pool);
+				<Module<T, I>>::refresh_members(pool, ChangeReceiver::MembershipInitialized);
+			});
 		})
 	}
 }
@@ -223,7 +228,7 @@ decl_module! {
 		for enum Call
 		where origin: T::Origin
 	{
-		fn deposit_event() = default;
+		fn deposit_event<T, I>() = default;
 
 		/// Every `Period` blocks the `Members` set is refreshed from the
 		/// highest scoring members in the pool.

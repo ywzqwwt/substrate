@@ -504,7 +504,7 @@ decl_module! {
 		/// default value is 10_000_000.
 		const BlockGasLimit: Gas = T::BlockGasLimit::get();
 
-		fn deposit_event() = default;
+		fn deposit_event<T>() = default;
 
 		/// Updates the schedule for metering contracts.
 		///

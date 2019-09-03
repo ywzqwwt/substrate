@@ -20,8 +20,8 @@ use std::sync::{Arc, atomic::{self, AtomicUsize}};
 use log::{error, warn};
 use jsonrpc_pubsub::{SubscriptionId, typed::{Sink, Subscriber}};
 use parking_lot::Mutex;
-use jsonrpc_core::futures::sync::oneshot;
-use jsonrpc_core::futures::{Future, future};
+use crate::rpc::futures::sync::oneshot;
+use crate::rpc::futures::{Future, future};
 
 type Id = u64;
 
