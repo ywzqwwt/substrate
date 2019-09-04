@@ -599,7 +599,10 @@ where
 	type OffchainStorage = OffchainStorage;
 
 	fn begin_operation(&self) -> error::Result<Self::BlockImportOperation> {
+		info!("000 start begin_operation");
 		let old_state = self.state_at(BlockId::Hash(Default::default()))?;
+		info!("000 end begin_operation");
+		
 		Ok(BlockImportOperation {
 			pending_block: None,
 			pending_cache: Default::default(),

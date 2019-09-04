@@ -356,9 +356,7 @@ impl<B, E, Block, RA> Client<B, E, Block, RA> where
 
 	/// Get a reference to the state at a given block.
 	pub fn state_at(&self, block: &BlockId<Block>) -> error::Result<B::State> {
-		info!("START state at");
 		let r = self.backend.state_at(*block);
-		info!("END state at");
 		r
 	}
 

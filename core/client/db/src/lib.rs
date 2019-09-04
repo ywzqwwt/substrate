@@ -1393,6 +1393,7 @@ impl<Block> client::backend::Backend<Block, Blake2Hasher> for Backend<Block> whe
 
 	fn state_at(&self, block: BlockId<Block>) -> Result<Self::State, client::error::Error> {
 		use client::blockchain::HeaderBackend as BcHeaderBackend;
+		info("000 START state_at");
 
 		// special case for genesis initialization
 		match block {
@@ -1406,7 +1407,7 @@ impl<Block> client::backend::Backend<Block, Blake2Hasher> for Backend<Block> whe
 			_ => {}
 		}
 
-		match self.blockchain.header(block) {
+		let r = match self.blockchain.header(block) {
 			Ok(Some(ref hdr)) => {
 				let hash = hdr.hash();
 				if let Ok(()) = self.storage.state_db.pin(&hash) {
@@ -1420,7 +1421,9 @@ impl<Block> client::backend::Backend<Block, Blake2Hasher> for Backend<Block> whe
 			},
 			Ok(None) => Err(client::error::Error::UnknownBlock(format!("Unknown state for block {:?}", block))),
 			Err(e) => Err(e),
-		}
+		};
+		info!("000 END state_at");
+		r
 	}
 
 	fn have_state_at(&self, hash: &Block::Hash, number: NumberFor<Block>) -> bool {
