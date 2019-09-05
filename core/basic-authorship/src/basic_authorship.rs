@@ -19,12 +19,14 @@
 // FIXME #1021 move this into substrate-consensus-common
 //
 
-use std::{time, sync::Arc};
+use std::{time, sync::Arc,collections::hash_map::DefaultHasher};
+use std::hash::{Hash, Hasher};
 use client::{
 	error, Client as SubstrateClient, CallExecutor,
 	block_builder::api::BlockBuilder as BlockBuilderApi,
 };
 use codec::Decode;
+use codec::Encode;
 use consensus_common::{evaluation};
 use inherents::InherentData;
 use log::{error, info, debug, trace};
@@ -119,6 +121,12 @@ where
 	}
 }
 
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+	let mut s = DefaultHasher::new();
+	t.hash(&mut s);
+	s.finish()
+}
+
 impl<Block, B, E, RA, A> Proposer<Block, SubstrateClient<B, E, Block, RA>, A>	where
 	A: txpool::ChainApi<Block=Block>,
 	B: client::backend::Backend<Block, Blake2Hasher> + Send + Sync + 'static,
@@ -161,6 +169,11 @@ impl<Block, B, E, RA, A> Proposer<Block, SubstrateClient<B, E, Block, RA>, A>	wh
 
 		debug!("Attempting to push transactions from the pool.");
 		for pending in pending_iterator {
+			let hashnumber = calculate_hash(&pending.hash.clone())  as u8;
+			let cnumber =Encode::encode(&self.parent_number)[0] +1;
+			if cnumber%2 != hashnumber%2{
+				continue
+			}
 			if (self.now)() > deadline {
 				debug!("Consensus deadline reached when pushing block transactions, proceeding with proposing.");
 				break;
